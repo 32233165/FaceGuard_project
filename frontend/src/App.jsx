@@ -69,13 +69,13 @@ function App() {
               // 점 그리기 시작
               ctx.beginPath();
 
-              // 점 위치 계산
+              // FaceMesh 처리
               ctx.arc(
                 point.x * canvas.width,
                 point.y * canvas.height,
 
                 // 점 크기
-                1,
+                3,
 
                 // 시작 각도
                 0,
@@ -164,6 +164,7 @@ function App() {
             position: "absolute",
             top: 0,
             left: 0,
+            transform: "scaleX(-1)",
           }}
         />
 
