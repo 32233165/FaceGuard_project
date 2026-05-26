@@ -1,12 +1,23 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Webcam from "react-webcam";
 
 function App() {
 
   // 웹캠 참조
   const webcamRef = useRef(null);
+  // FaceMesh 시작 플래그
+  const faceMeshStartedRef = useRef(false);
+  // 이전 랜드마크 저장
+  const previousLandmarksRef = useRef(null);
+  // 결과 메시지
+  const [message, setMessage] = useState("얼굴 Landmark 분석 중...");
+  // 눈 깜빡임
+  const [blinkText, setBlinkText] = useState("눈 깜빡임 분석 중...");
 
   useEffect(() => {
+    if (faceMeshStartedRef.current) return;
+    faceMeshStartedRef.current = true;
+    let intervalId = null;
 
     // MediaPipe FaceMesh 스크립트 로드
     const script = document.createElement("script");
@@ -31,7 +42,7 @@ function App() {
         maxNumFaces: 1,
 
         // landmark 정밀도 향상
-        refineLandmarks: true,
+        refineLandmarks: false, // 테스트용으로 false 설정
 
         // 얼굴 탐지 최소 정확도
         minDetectionConfidence: 0.5,
@@ -42,12 +53,31 @@ function App() {
 
       // 얼굴 분석 결과 처리
       faceMesh.onResults((results) => {
+        const landmarks = results.multiFaceLandmarks?.[0];
+
+        const leftEyeTop = landmarks[159];
+        const leftEyeBottom = landmarks[145];
+
+        const eyeDistance = Math.abs(leftEyeTop.y - leftEyeBottom.y);
+        console.log("눈 깜빡임 정도: ", eyeDistance);
+
+        if (eyeDistance < 0.01) {
+          setResultText("눈 깜빡임 감지됨");
+        } else {
+          setResultText("눈 깜빡임 감지되지 않음");
+        }
+        // 분석 결과 랜드마크 출력
+        console.log(results.multiFaceLandmarks);
 
         // canvas 가져오기
         const canvas = document.getElementById("canvas");
 
+        if (!canvas) return;
+
         // canvas 그리기 context 생성
         const ctx = canvas.getContext("2d");
+
+        if (!ctx) return;
 
         // 이전 프레임 삭제
         ctx.clearRect(
@@ -75,7 +105,7 @@ function App() {
                 point.y * canvas.height,
 
                 // 점 크기
-                3,
+                1.5,
 
                 // 시작 각도
                 0,
@@ -95,10 +125,13 @@ function App() {
       });
 
       // 일정 시간 후 얼굴 분석 시작
-      setInterval(async () => {
+      const intervalId = setInterval(async () => {
 
         // 웹캠 연결 확인
         if (webcamRef.current?.video) {
+          const video = webcamRef.current.video;
+
+          if (video.readyState < 2) return;
 
           // 현재 웹캠 화면 분석
           await faceMesh.send({
@@ -106,12 +139,21 @@ function App() {
           });
         }
 
-      }, 100);
+      }, 100); // 100ms마다 분석
     };
 
-    // script를 body에 추가
-    document.body.appendChild(script);
+    if (document.querySelector(`script[src*="@mediapipe/face_mesh"]`)) {
+    script.onload();
+    } else {
+      document.body.appendChild(script);
+    }
 
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+      document.body.removeChild(script);
+    };
   }, []);
 
   return (
@@ -164,7 +206,6 @@ function App() {
             position: "absolute",
             top: 0,
             left: 0,
-            transform: "scaleX(-1)",
           }}
         />
 
@@ -179,13 +220,14 @@ function App() {
             position: "absolute",
             top: 0,
             left: 0,
+            transform: "scaleX(-1)", // 웹캠과 동일하게 좌우 반전
           }}
         />
       </div>
 
       {/* 상태 메시지 */}
       <p>
-        얼굴 Landmark 분석 중...
+        {message}
       </p>
     </div>
   );
