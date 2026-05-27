@@ -9,11 +9,21 @@ function App() {
   const faceMeshStartedRef = useRef(false);
   // 이전 랜드마크 저장
   const previousLandmarksRef = useRef(null);
+  const blinkDetectedRef = useRef(false);
+  const analysisStartTimeRef = useRef(null);
+  const isAnalyzingRef = useRef(false);
+  const movementDetectedRef = useRef(false);
   // 결과 메시지
-  const [message, setMessage] = useState("얼굴 Landmark 분석 중...");
-  // 눈 깜빡임
-  const [blinkText, setBlinkText] = useState("눈 깜빡임 분석 중...");
+  const [result, setResult] = useState("분석 시작 버튼을 눌러주세요.");
 
+  const startAnalysis = () => {
+    setResult("분석 중...");
+    isAnalyzingRef.current = false;
+    blinkDetectedRef.current = false;
+    movementDetectedRef.current = false;
+    analysisStartTimeRef.current = null;
+    previousLandmarksRef.current = null;
+  };
   useEffect(() => {
     if (faceMeshStartedRef.current) return;
     faceMeshStartedRef.current = true;
@@ -54,69 +64,85 @@ function App() {
       // 얼굴 분석 결과 처리
       faceMesh.onResults((results) => {
         const landmarks = results.multiFaceLandmarks?.[0];
-
-        const leftEyeTop = landmarks[159];
-        const leftEyeBottom = landmarks[145];
-
-        const eyeDistance = Math.abs(leftEyeTop.y - leftEyeBottom.y);
-        console.log("눈 깜빡임 정도: ", eyeDistance);
-
-        if (eyeDistance < 0.01) {
-          setResultText("눈 깜빡임 감지됨");
-        } else {
-          setResultText("눈 깜빡임 감지되지 않음");
-        }
         // 분석 결과 랜드마크 출력
         console.log(results.multiFaceLandmarks);
 
         // canvas 가져오기
         const canvas = document.getElementById("canvas");
-
         if (!canvas) return;
 
         // canvas 그리기 context 생성
         const ctx = canvas.getContext("2d");
-
         if (!ctx) return;
 
         // 이전 프레임 삭제
-        ctx.clearRect(
-          0,
-          0,
-          canvas.width,
-          canvas.height
-        );
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (!isAnalyzingRef.current) return;
+        if (!analysisStartTimeRef.current) {
+          analysisStartTimeRef.current = Date.now();
+        }
+        const elapsedTime = Date.now() - analysisStartTimeRef.current;
 
         // 얼굴 landmark 존재 여부 확인
         if (results.multiFaceLandmarks) {
-
-          // 얼굴마다 반복
           for (const landmarks of results.multiFaceLandmarks) {
+            const leftEyeTop = landmarks[159];
+            const leftEyeBottom = landmarks[145];
+
+            const eyeDistance = Math.abs(leftEyeTop.y - leftEyeBottom.y);
+            console.log("눈 깜빡임 정도: ", eyeDistance);
+
+            if (eyeDistance < 0.006) {
+              blinkDetectedRef.current = true;
+            }
+
+            const nose = landmarks[1];
+            const previousLandmarks = previousLandmarksRef.current;
+
+            if (previousLandmarks) {
+              const previousNose = previousLandmarks[1];
+              const noseMovement = Math.abs(nose.x - previousNose.x) + Math.abs(nose.y - previousNose.y);
+              console.log("코 움직임 정도: ", noseMovement);
+
+              if (noseMovement > 0.001) {
+                movementDetectedRef.current = true;
+              }
+            }
+
+            if (elapsedTime >= 3000) {
+              isAnalyzingRef.current = false;
+
+              if (
+                blinkDetectedRef.current === true &&
+                movementDetectedRef.current === true
+              ) {
+                setResult("실제 사람입니다.");
+              } else {
+                setResult("실제 사람이 아닙니다.");
+              }
+            }
+
+            previousLandmarksRef.current = landmarks;
 
             // landmark 점 반복
             for (const point of landmarks) {
-
               // 점 그리기 시작
               ctx.beginPath();
-
               // FaceMesh 처리
               ctx.arc(
                 point.x * canvas.width,
                 point.y * canvas.height,
-
                 // 점 크기
                 1.5,
-
                 // 시작 각도
                 0,
-
                 // 끝 각도
                 2 * Math.PI
               );
 
               // 점 색상
               ctx.fillStyle = "#00ffcc";
-
               // 점 채우기
               ctx.fill();
             }
@@ -194,14 +220,10 @@ function App() {
         {/* 웹캠 */}
         <Webcam
           ref={webcamRef}
-
           audio={false}
-
           mirrored={true}
-
           width={640}
           height={480}
-
           style={{
             position: "absolute",
             top: 0,
@@ -212,10 +234,8 @@ function App() {
         {/* 얼굴 landmark 표시 canvas */}
         <canvas
           id="canvas"
-
           width={640}
           height={480}
-
           style={{
             position: "absolute",
             top: 0,
@@ -226,9 +246,11 @@ function App() {
       </div>
 
       {/* 상태 메시지 */}
-      <p>
-        {message}
-      </p>
+      <p> {result} </p>
+
+      <button onClick={startAnalysis}>
+        분석 시작
+      </button>
     </div>
   );
 }
