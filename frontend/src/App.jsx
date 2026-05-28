@@ -8,14 +8,8 @@ function App() {
   // FaceMesh 시작 플래그
   const faceMeshStartedRef = useRef(false);
 
-  // 이전 랜드마크 저장
-  const previousLandmarksRef = useRef(null);
-
   // 눈 깜빡임 감지 여부
   const blinkDetectedRef = useRef(false);
-
-  // 얼굴 움직임 감지 여부
-  const movementDetectedRef = useRef(false);
 
   // 분석 시작 시간
   const analysisStartTimeRef = useRef(null);
@@ -27,13 +21,11 @@ function App() {
   const [result, setResult] = useState("분석 시작 버튼을 눌러주세요.");
 
   const startAnalysis = () => {
-    setResult("분석 중입니다...");
+    setResult("분석 중입니다. 눈을 한 번 깜빡여주세요.");
 
     isAnalyzingRef.current = true;
     blinkDetectedRef.current = false;
-    movementDetectedRef.current = false;
     analysisStartTimeRef.current = null;
-    previousLandmarksRef.current = null;
   };
 
   useEffect(() => {
@@ -74,7 +66,6 @@ function App() {
           if (isAnalyzingRef.current) {
             setResult("얼굴을 찾을 수 없습니다.");
           }
-          previousLandmarksRef.current = null;
           return;
         }
 
@@ -112,39 +103,20 @@ function App() {
         const eyeDistance = Math.abs(leftEyeTop.y - leftEyeBottom.y);
         console.log("눈 깜빡임 정도:", eyeDistance);
 
-        if (eyeDistance < 0.006) {
+        const blinkThreshold = 0.01;
+
+        if (eyeDistance < blinkThreshold) {
           blinkDetectedRef.current = true;
+          console.log("눈 깜빡임 감지됨");
         }
 
         // =========================
-        // 3. 얼굴 움직임 판별
-        // =========================
-        const nose = landmarks[1];
-        const previousLandmarks = previousLandmarksRef.current;
-
-        if (previousLandmarks) {
-          const previousNose = previousLandmarks[1];
-
-          const noseMovement =
-            Math.abs(nose.x - previousNose.x) +
-            Math.abs(nose.y - previousNose.y);
-
-          console.log("코 움직임 정도:", noseMovement);
-
-          if (noseMovement > 0.001) {
-            movementDetectedRef.current = true;
-          }
-        }
-
-        previousLandmarksRef.current = landmarks;
-
-        // =========================
-        // 4. 3초 후 최종 결과 출력
+        // 3. 5초 후 최종 결과 출력
         // =========================
         if (elapsedTime >= 5000) {
           isAnalyzingRef.current = false;
 
-          if (blinkDetectedRef.current || movementDetectedRef.current) {
+          if (blinkDetectedRef.current) {
             setResult("실제 사람입니다.");
           } else {
             setResult("실제 사람이 아닙니다.");
