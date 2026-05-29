@@ -91,18 +91,14 @@ function App() {
         if (!analysisStartTimeRef.current) {
           analysisStartTimeRef.current = Date.now();
         }
-
         const elapsedTime = Date.now() - analysisStartTimeRef.current;
 
         // 왼쪽 눈
         const leftEye = landmarks[33];
-        
         // 오른쪽 눈
         const rightEye = landmarks[263];
-
         // 코
         const nose = landmarks[1];
-
         // 입
         const mouth = landmarks[13];
 
@@ -111,7 +107,8 @@ function App() {
         );
 
         const noseMouthDistance = Math.sqrt(
-          Math.pow((nose.x - mouth.x) * canvas.width, 2) + Math.pow((nose.y - mouth.y) * canvas.height, 2)
+          Math.pow((nose.x - mouth.x) * canvas.width, 2)
+           + Math.pow((nose.y - mouth.y) * canvas.height, 2)
         );
 
         const ratio = noseMouthDistance / eyeDistance;
@@ -129,13 +126,16 @@ function App() {
         const rightEyeBottom = landmarks[374];
         const blinkThreshold = 0.022; // 눈 깜빡임 감지 임계값
 
-        const eyeDistanceLeft = Math.abs(leftEyeTop.y - leftEyeBottom.y);
-        const eyeDistanceRight = Math.abs(rightEyeTop.y - rightEyeBottom.y);
+        const eyeDistanceLeft = 
+          Math.abs(leftEyeTop.y - leftEyeBottom.y);
+        const eyeDistanceRight = 
+          Math.abs(rightEyeTop.y - rightEyeBottom.y);
 
         console.log("왼쪽 눈 거리:", eyeDistanceLeft);
         console.log("오른쪽 눈 거리:", eyeDistanceRight);
         
-        if (eyeDistanceLeft < blinkThreshold || eyeDistanceRight < blinkThreshold) {
+        if (eyeDistanceLeft < blinkThreshold || 
+          eyeDistanceRight < blinkThreshold) {
           blinkDetectedRef.current = true;
           console.log("눈 깜빡임 감지됨");
         }
@@ -185,27 +185,57 @@ function App() {
   }, []);
 
   return (
-    <div
+  <div
+    style={{
+      minHeight: "100vh",
+      background: "linear-gradient(135deg, #020617 0%, #0f172a 50%, #1e3a8a 100%)",
+      color: "white",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      fontFamily: "Arial, sans-serif",
+      padding: "30px",
+    }}
+  >
+    <h1
       style={{
-        minHeight: "100vh",
-        backgroundColor: "#020617",
-        color: "white",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
+        fontSize: "48px",
+        marginBottom: "8px",
+        letterSpacing: "1px",
       }}
     >
-      <h1>FaceGuard</h1>
+      FaceGuard
+    </h1>
 
-      <p>AI 기반 생체인식 인증 보안 시스템</p>
+    <p
+      style={{
+        fontSize: "20px",
+        color: "#cbd5e1",
+        marginBottom: "30px",
+      }}
+    >
+      생체인식 인증 보안 시스템
+    </p>
 
+    <div
+      style={{
+        padding: "18px",
+        borderRadius: "24px",
+        background: "rgba(255, 255, 255, 0.08)",
+        border: "1px solid rgba(255, 255, 255, 0.2)",
+        boxShadow: "0 25px 60px rgba(0, 0, 0, 0.45)",
+      }}
+    >
       <div
         style={{
           position: "relative",
           width: "640px",
           height: "480px",
-          border: "2px solid white",
+          borderRadius: "18px",
+          overflow: "hidden",
+          border: "2px solid rgba(255, 255, 255, 0.7)",
+          backgroundColor: "#000",
         }}
       >
         <Webcam
@@ -240,29 +270,51 @@ function App() {
           }}
         />
       </div>
-
-      <p
-        style={{
-          marginTop: "20px",
-          fontSize: "20px",
-          fontWeight: "bold",
-        }}
-      >
-        {result}
-      </p>
-
-      <button
-        onClick={startAnalysis}
-        style={{
-          padding: "10px 20px",
-          fontSize: "16px",
-          cursor: "pointer",
-        }}
-      >
-        분석 시작
-      </button>
     </div>
-  );
+
+    <div
+      style={{
+        marginTop: "24px",
+        padding: "14px 32px",
+        borderRadius: "999px",
+        background:
+          result.includes("실제") 
+            ? "rgba(34, 197, 94, 0.2)" 
+            : result.includes("공격") 
+            ? "rgba(239, 68, 68, 0.2)" 
+            : "rgba(255, 255, 255, 0.12)",
+        border:
+          result.includes("실제") 
+            ? "1px solid #22c55e" 
+            : result.includes("공격") 
+            ? "1px solid #ef4444" 
+            : "1px solid rgba(255, 255, 255, 0.3)",
+        fontSize: "24px",
+        fontWeight: "bold",
+      }}
+    >
+      {result}
+    </div>
+
+    <button
+      onClick={startAnalysis}
+      style={{
+        marginTop: "20px",
+        padding: "14px 36px",
+        fontSize: "18px",
+        fontWeight: "bold",
+        color: "white",
+        background: "linear-gradient(135deg, #2563eb, #06b6d4)",
+        border: "none",
+        borderRadius: "999px",
+        cursor: "pointer",
+        boxShadow: "0 10px 30px rgba(37, 99, 235, 0.4)",
+      }}
+    >
+      분석 시작
+    </button>
+  </div>
+);
 }
 
 export default App;
