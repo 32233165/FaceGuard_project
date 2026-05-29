@@ -72,7 +72,7 @@ Face Ratio      Blink Detection
 
 ## 2. 랜드마크 추출
 
-MediaPipe FaceMesh를 이용하여 얼굴 랜드마크 468개를 추출합니다.
+MediaPipe FaceMesh를 이용하여 얼굴 랜드마크를 추출합니다.
 
 ## 3. 얼굴 비율 계산
 
